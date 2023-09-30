@@ -191,9 +191,9 @@ class Scheduler(object):
             self._params[key]["average"] = (average * count + sensor)/(count + 1)
             self._params[key]["count"] = count + 1
 
-            if max == -1 or max < sensor :
+            if count == 0 or max < sensor :
                 self._params["max"] = sensor
-            if min == -1 or sensor < min :
+            if count == 0 or sensor < min :
                 self._params["min"] = sensor
 
 
@@ -561,7 +561,7 @@ class Scheduler(object):
         return album_id
 
 
-    def logging_and_reset_avg_job(self) -> None:
+    def logging_avg_job(self) -> None:
         """Logging the average etc to spreadsheet
         """
         if not self.is_use_flag("google", "spread_sheet"):
@@ -596,7 +596,10 @@ def main() -> None:
     scheduler = Scheduler(config)
     _create_scheduler_job(scheduler.monitoring_job, config["sensor"]["scheduler"])
     #追記
-    _create_scheduler_job(scheduler.logging_and_reset_avg_job, config["avgjob"]["scheduler"])
+    #他に合わせてconfigから持ってくるパターン
+    # _create_scheduler_job(scheduler.logging_avg_job, config["avgjob"]["scheduler"])
+    #毎日で固定するパターン
+    schedule.every().day.at("00:00:01").do(scheduler.logging_avg_job)
     if scheduler.is_use_flag("google", "mail", "summary"):
         _create_scheduler_job(scheduler.summary_mail_job, config["google"]["mail"]["summary"]["scheduler"])
     if scheduler.is_use_flag("module", "relay_module", "scheduler"):

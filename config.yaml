@@ -115,7 +115,7 @@ sensor:
     use: True # or False
 
 
- avgjob:
-  scheduler:
-    day_of_week: [ monday, tuesday, wednesday, thursday, friday, saturday, sunday ]
-        at_time: ["00:00:01"]
+#  avgjob:
+#   scheduler:
+#     day_of_week: [ monday, tuesday, wednesday, thursday, friday, saturday, sunday ]
+#         at_time: ["00:00:01"]
