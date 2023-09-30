@@ -24,7 +24,9 @@ google:
     summary:
       use: True # or False
       subject: "[Summary] IoT-kit"
-      body: "Summary data of IoT sensor for the last {from_days} days."
+      body: 
+        title: "Summary data of IoT sensor for the last {from_days} days."
+        contents: "{sensor} Average:{average} Max:{max} Min{min}"
       from_days: 7
       scheduler:
         day_of_week: [ monday, tuesday, wednesday, thursday, friday, saturday, sunday ]
@@ -111,3 +113,9 @@ sensor:
   # distance, light sensor
   vl6180:
     use: True # or False
+
+
+ avgjob:
+  scheduler:
+    day_of_week: [ monday, tuesday, wednesday, thursday, friday, saturday, sunday ]
+        at_time: ["00:00:01"]
