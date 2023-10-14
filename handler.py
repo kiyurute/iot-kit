@@ -100,24 +100,24 @@ class Scheduler(object):
         # The value of the upper sensor has priority
         if self.is_use_flag("sensor", "bh1750fvi"):
             if "light" not in self._params:
-                self._params["light"] = {"value": 0, "average":0, "min":-1, "max":-1, "count":0, "function": self._bh1750fvi_sensor.get_light}
+                self._params["light"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._bh1750fvi_sensor.get_light}
         if self.is_use_flag("sensor", "sht31"):
             if "temperature" not in self._params:
-                self._params["temperature"] = {"value": 0, "average":0, "min":-1, "max":-1, "count":0, "function": self._sht31_sensor.get_temperature}
+                self._params["temperature"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._sht31_sensor.get_temperature}
             if "humidity" not in self._params:
-                self._params["humidity"] = {"value": 0, "average":0, "min":-1, "max":-1, "count":0, "function": self._sht31_sensor.get_humidity}
+                self._params["humidity"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._sht31_sensor.get_humidity}
         if self.is_use_flag("sensor", "co2mini"):
             if "temperature" not in self._params:
-                self._params["temperature"] = {"value": 0, "average":0, "min":-1, "max":-1, "count":0, "function": self._co2mini_sensor.get_temperature}
+                self._params["temperature"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._co2mini_sensor.get_temperature}
             if "humidity" not in self._params:
-                self._params["humidity"] = {"value": 0, "average":0, "min":-1, "max":-1, "count":0, "function": self._co2mini_sensor.get_humidity}
+                self._params["humidity"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._co2mini_sensor.get_humidity}
             if "co2" not in self._params:
-                self._params["co2"] = {"value": 0, "average":0, "min":-1, "max":-1, "count":0, "function": self._co2mini_sensor.get_co2}
+                self._params["co2"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._co2mini_sensor.get_co2}
         if self.is_use_flag("sensor", "vl6180"):
             if "light" not in self._params:
-                self._params["light"] = {"value": 0,  "average":0, "min":-1, "max":-1, "count":0,"function": self._vl6180x_sensor.get_light}
+                self._params["light"] = {"value": 0,  "average":0, "min":0, "max":0, "count":0,"function": self._vl6180x_sensor.get_light}
             if "distance" not in self._params:
-                self._params["distance"] = {"value": 0, "average":0, "min":-1, "max":-1, "count":0, "function": self._vl6180x_sensor.get_distance}
+                self._params["distance"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._vl6180x_sensor.get_distance}
 
     def _init_interval_minutes(self) -> None:
         """Initialize the skip interval minutes of use.
@@ -599,7 +599,7 @@ def main() -> None:
     #他に合わせてconfigから持ってくるパターン
     # _create_scheduler_job(scheduler.logging_avg_job, config["avgjob"]["scheduler"])
     #毎日で固定するパターン
-    schedule.every().day.at("00:00:01").do(scheduler.logging_avg_job)
+    schedule.every().day.at("00:00:00").do(scheduler.logging_avg_job)
     if scheduler.is_use_flag("google", "mail", "summary"):
         _create_scheduler_job(scheduler.summary_mail_job, config["google"]["mail"]["summary"]["scheduler"])
     if scheduler.is_use_flag("module", "relay_module", "scheduler"):
