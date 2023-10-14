@@ -100,24 +100,24 @@ class Scheduler(object):
         # The value of the upper sensor has priority
         if self.is_use_flag("sensor", "bh1750fvi"):
             if "light" not in self._params:
-                self._params["light"] = {"value": 0, "function": self._bh1750fvi_sensor.get_light}
+                self._params["light"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._bh1750fvi_sensor.get_light}
         if self.is_use_flag("sensor", "sht31"):
             if "temperature" not in self._params:
-                self._params["temperature"] = {"value": 0, "function": self._sht31_sensor.get_temperature}
+                self._params["temperature"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._sht31_sensor.get_temperature}
             if "humidity" not in self._params:
-                self._params["humidity"] = {"value": 0, "function": self._sht31_sensor.get_humidity}
+                self._params["humidity"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._sht31_sensor.get_humidity}
         if self.is_use_flag("sensor", "co2mini"):
             if "temperature" not in self._params:
-                self._params["temperature"] = {"value": 0, "function": self._co2mini_sensor.get_temperature}
+                self._params["temperature"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._co2mini_sensor.get_temperature}
             if "humidity" not in self._params:
-                self._params["humidity"] = {"value": 0, "function": self._co2mini_sensor.get_humidity}
+                self._params["humidity"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._co2mini_sensor.get_humidity}
             if "co2" not in self._params:
-                self._params["co2"] = {"value": 0, "function": self._co2mini_sensor.get_co2}
+                self._params["co2"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._co2mini_sensor.get_co2}
         if self.is_use_flag("sensor", "vl6180"):
             if "light" not in self._params:
-                self._params["light"] = {"value": 0, "function": self._vl6180x_sensor.get_light}
+                self._params["light"] = {"value": 0,  "average":0, "min":0, "max":0, "count":0,"function": self._vl6180x_sensor.get_light}
             if "distance" not in self._params:
-                self._params["distance"] = {"value": 0, "function": self._vl6180x_sensor.get_distance}
+                self._params["distance"] = {"value": 0, "average":0, "min":0, "max":0, "count":0, "function": self._vl6180x_sensor.get_distance}
 
     def _init_interval_minutes(self) -> None:
         """Initialize the skip interval minutes of use.
@@ -181,7 +181,24 @@ class Scheduler(object):
         """Fetch the parameters of use by user callback function.
         """
         for key, data in self._params.items():
-            self._params[key]["value"] = self._params[key]["function"]()
+            sensor = self._params[key]["function"]()
+            average = self._params[key]["average"]
+            count = self._params["count"]
+            max = self._params["max"]
+            min = self._params["min"]
+
+            self._params[key]["value"] = sensor
+            self._params[key]["average"] = (average * count + sensor)/(count + 1)
+            self._params[key]["count"] = count + 1
+
+            if count == 0 or max < sensor :
+                self._params["max"] = sensor
+            if count == 0 or sensor < min :
+                self._params["min"] = sensor
+
+
+
+
 
     def _logging_spread_sheet(self) -> None:
         """Log the parameters log to spreadsheet.
@@ -192,6 +209,8 @@ class Scheduler(object):
             return
 
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # 配列の連＆リスト内包表記
+        # [時間,温度,湿度,...]みたくなる
         append_rows = [current_datetime] + [round(self._params[key]["value"], 1) for key in self._params.keys()]
         if self.is_use_flag("module", "relay_module", "conditions"):
             append_rows.append(int(self._is_power_flag()))
@@ -376,7 +395,12 @@ class Scheduler(object):
         image_file_list.extend(photo_image_path_list)
 
         from_days = self._config["google"]["mail"]["summary"]["from_days"]
-        body = self._config["google"]["mail"]["summary"]["body"].format(from_days=from_days) + "\n"
+        body = self._config["google"]["mail"]["summary"]["body"]["title"].format(from_days=from_days) + "\n"
+
+        for key, data in self._params.items():
+            body += self._config["google"]["mail"]["summary"]["body"]["contents"].format(sensor=key, average=self._params[key]["average"], max=self._params["max"], min=self._params["min"])+"\n"
+
+
         body += self._append_google_link_body(with_spread_sheet=True, with_photo_library=True)
         self._send_mail(
             self._config["google"]["mail"]["summary"]["subject"],
@@ -537,6 +561,33 @@ class Scheduler(object):
         return album_id
 
 
+    def logging_avg_job(self) -> None:
+        """Logging the average etc to spreadsheet
+        """
+        if not self.is_use_flag("google", "spread_sheet"):
+            return
+        if not self._params:
+            return
+
+        target_date = datetime.now()-timedelta(1) #昨日
+        target_date_format = target_date.strftime("%Y-%m-%d %H:%M:%S")
+        append_rows = [target_date_format] + [round(self._params[key]["average"], 1) for key in self._params.keys()]
+
+        # ここどういう意味か聞く
+        # if self.is_use_flag("module", "relay_module", "conditions"):
+        #     append_rows.append(int(self._is_power_flag()))
+
+        # append_rowの2個目の引数で二枚目のシートを指定
+        self._spread_sheet_client.append_row(append_rows,1)
+        for key in self._params.keys():
+            self._params[key]["average"] = 0
+            self._params[key]["count"] = 0
+
+
+
+
+
+
 def main() -> None:
     """main function.
     """
@@ -544,6 +595,11 @@ def main() -> None:
 
     scheduler = Scheduler(config)
     _create_scheduler_job(scheduler.monitoring_job, config["sensor"]["scheduler"])
+    #追記
+    #他に合わせてconfigから持ってくるパターン
+    # _create_scheduler_job(scheduler.logging_avg_job, config["avgjob"]["scheduler"])
+    #毎日で固定するパターン
+    schedule.every().day.at("00:00:00").do(scheduler.logging_avg_job)
     if scheduler.is_use_flag("google", "mail", "summary"):
         _create_scheduler_job(scheduler.summary_mail_job, config["google"]["mail"]["summary"]["scheduler"])
     if scheduler.is_use_flag("module", "relay_module", "scheduler"):
